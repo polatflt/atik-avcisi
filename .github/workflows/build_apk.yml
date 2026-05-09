@@ -18,6 +18,12 @@ jobs:
         with:
           python-version: '3.10'
 
+      - name: Java kur
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
       - name: Sistem bagimliklarini kur
         run: |
           sudo apt-get update
@@ -31,35 +37,42 @@ jobs:
             libreadline-dev \
             libbz2-dev \
             zlib1g-dev \
-            openjdk-17-jdk \
             autoconf \
             libtool \
             pkg-config \
             cmake \
             libltdl-dev \
-            libgdbm-dev
+            libgdbm-dev \
+            aidl
 
-      - name: Buildozer kur
+      - name: Android SDK kur
+        uses: android-actions/setup-android@v3
+
+      - name: Android SDK paketlerini kur
+        run: |
+          sdkmanager "platform-tools" "platforms;android-33" "build-tools;33.0.2" "ndk;25.2.9519653"
+
+      - name: Buildozer ve Cython kur
         run: |
           pip install --upgrade pip
           pip install buildozer cython==0.29.33
 
-      - name: Android SDK/NDK cache
+      - name: Cache
         uses: actions/cache@v4
         with:
           path: |
             ~/.buildozer
-            ~/.android
-          key: android-sdk-${{ hashFiles('buildozer.spec') }}
-          restore-keys: android-sdk-
-
-      - name: Dosya yapısını kontrol et
-        run: ls -la
+          key: buildozer-${{ hashFiles('buildozer.spec') }}
+          restore-keys: buildozer-
 
       - name: APK Derle
-        run: buildozer -v android debug
+        env:
+          ANDROID_SDK_ROOT: ${{ env.ANDROID_SDK_ROOT }}
+          ANDROID_NDK_HOME: ${{ env.ANDROID_SDK_ROOT }}/ndk/25.2.9519653
+        run: |
+          buildozer -v android debug 2>&1
 
-      - name: APK'yi yukle
+      - name: APK yukle
         uses: actions/upload-artifact@v4
         with:
           name: AtikAvcisi-APK
